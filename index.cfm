@@ -5,7 +5,7 @@ function jsonOut(required any data,numeric status=200){cfheader(statusCode=argum
 function redirectTo(required string location,numeric status=302){cfheader(statusCode=arguments.status,statusText="Found");cfheader(name="Location",value=arguments.location);request.responseCommitted=true;abort;}
 function htmlOut(required string html,numeric status=200){cfheader(statusCode=arguments.status,statusText=arguments.status>=400?"Error":"OK");cfcontent(type="text/html; charset=utf-8",reset=true);writeOutput(arguments.html);request.responseCommitted=true;abort;}
 function bodyJson(){var raw=getHttpRequestData().content;if(isBinary(raw))raw=charsetEncode(raw,"utf-8");if(!len(trim(raw&"")))return{};try{return deserializeJson(raw);}catch(any e){return{};}}
-function routePath(){var p=listFirst(cgi.request_uri?:"/","?");p=reReplace(p,"^/index\.cfm","");if(!len(p))p="/";return p;}
+function routePath(){var p=trim(cgi.path_info?:"");if(!len(p)||p=="/index.cfm")p=listFirst(cgi.request_uri?:"/","?");p=reReplace(p,"^/index\.cfm","");if(!len(p))p="/";if(left(p,1)!="/")p="/"&p;return p;}
 function currentUser(){if(!structKeyExists(session,"user_id"))return{};return application.auth.getUser(session.user_id);}
 function requireLogin(){var u=currentUser();if(!structCount(u))redirectTo("/login?next="&urlEncodedFormat(routePath()));return u;}
 function requireAccess(required string section,string subsection=""){var u=requireLogin();if(!application.auth.hasAccess(u,arguments.section,arguments.subsection))jsonOut({ok:false,error:"You don't have permission to use this section."},403);return u;}
