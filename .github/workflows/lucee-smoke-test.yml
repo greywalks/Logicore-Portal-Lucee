@@ -27,17 +27,20 @@ jobs:
 
       - name: Verify health endpoint
         run: |
-          curl --fail --show-error --retry 8 --retry-delay 3 http://127.0.0.1:5000/healthz
+          curl --fail-with-body --show-error --retry 3 --retry-delay 2 http://127.0.0.1:5000/healthz
 
       - name: Verify login page
         run: |
-          curl --fail --show-error http://127.0.0.1:5000/login | grep -q "Sign in"
+          curl --fail-with-body --show-error http://127.0.0.1:5000/login | grep -q "Sign in"
 
       - name: Show Lucee logs on failure
         if: failure()
         run: |
           box server status || true
+          echo "--- repository logs ---"
           find . -maxdepth 6 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 180 {} \; || true
+          echo "--- CommandBox / Lucee logs ---"
+          find "$HOME/.CommandBox/server" -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 220 {} \; || true
 
       - name: Stop Lucee
         if: always()
