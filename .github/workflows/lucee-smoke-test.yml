@@ -31,12 +31,43 @@ jobs:
 
       - name: Verify login page
         run: |
-          curl --fail-with-body --show-error http://127.0.0.1:5000/login | grep -q "Sign in"
+          curl -sS -D login.headers -o login.body http://127.0.0.1:5000/login
+          cat login.headers
+          cat login.body
+          grep -q "HTTP/1.1 200" login.headers
+          grep -q "Sign in" login.body
+
+      - name: Authenticate default administrator
+        run: |
+          curl -sS -D auth.headers -o auth.body -c cookies.txt -b cookies.txt \
+            -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data 'username=admin&password=admin&next=/' \
+            http://127.0.0.1:5000/login
+          cat auth.headers
+          cat auth.body
+          grep -Eq "HTTP/1.1 30[12378]" auth.headers
+
+      - name: Verify authenticated portal and modules
+        run: |
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/ -o portal.body
+          grep -q "Logicore" portal.body
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/admin/permissions -o admin.body
+          grep -q "Users & Permissions" admin.body
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/training-tracker/ -o training.body
+          grep -q "Training" training.body
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/inventory-management/ -o inventory.body
+          grep -q "Inventory Management" inventory.body
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/nonconforming/api/items -o nonconforming.json
+          grep -qi '"ok"' nonconforming.json
+          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/get_storage_prices -o storage-prices.json
+          grep -qi '"ok"' storage-prices.json
 
       - name: Show Lucee logs on failure
         if: failure()
         run: |
           box server status || true
+          echo "--- captured HTTP bodies ---"
+          for f in *.headers *.body *.json; do if [ -f "$f" ]; then echo "--- $f ---"; cat "$f"; fi; done
           echo "--- repository logs ---"
           find . -maxdepth 6 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 180 {} \; || true
           echo "--- CommandBox / Lucee logs ---"
