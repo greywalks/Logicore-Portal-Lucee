@@ -63,7 +63,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 
 ## Validation notes
 
-Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals are normalized for Lucee's literal-hash escaping rules, and one-time migration workflows are removed after their patches land.
+Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals and request-level scopes have been normalized for Lucee 7, and one-time migration workflows are removed after their patches land.
 
 ## Known source inconsistency to preserve during parity testing
 
