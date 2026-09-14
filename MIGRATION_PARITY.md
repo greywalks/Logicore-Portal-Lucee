@@ -24,7 +24,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] Promethean FedEx Shipment routes are present.
 - [x] AMC routes are present.
 - [x] TCL routes are present.
-- [x] Philips routes are present.
+- [x] Philips routes are present, including raw-data Month End Report generation.
 - [x] Config/reference-data routes are present.
 - [ ] Authenticated endpoint smoke tests pass under Lucee.
 - [ ] Billing fixtures are checked against current Python-main behavior.
@@ -35,6 +35,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] Number generation.
 - [x] XLSX export through Apache POI.
 - [x] Zebra ZPL label output.
+- [x] Source-compatible `next_number`, PATCH, pagination, and 404 behavior.
 - [ ] Authenticated endpoint smoke tests pass under Lucee.
 
 ## Training Tracker
@@ -63,7 +64,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 
 ## Validation notes
 
-Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals and request-level scopes have been normalized for Lucee 7, and one-time migration workflows are removed after their patches land.
+Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals and request-level scopes have been normalized for Lucee 7, CommandBox SES routing uses `cgi.path_info`, and one-time migration workflows are removed after their patches land.
 
 ## Known source inconsistency to preserve during parity testing
 
