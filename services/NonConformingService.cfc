@@ -59,7 +59,7 @@ component output=false {
         var sets=[]; var params={id:arguments.id};
         for(var f in variables.editableFields){ if(structKeyExists(arguments.fields,f)){ arrayAppend(sets,f&"=:"&f); params[f]=trim(arguments.fields[f] ?: ""); } }
         if(!arrayLen(sets)) return current;
-        validateRequired(structAppend(duplicate(current),arguments.fields,true));
+        var merged=duplicate(current); structAppend(merged,arguments.fields,true); validateRequired(merged);
         queryExecute("UPDATE nc_items SET "&arrayToList(sets)&", updated_at=CURRENT_TIMESTAMP WHERE id=:id",params,{datasource:variables.datasource});
         return getItem(arguments.id);
     }
@@ -105,6 +105,6 @@ component output=false {
     }
 
     private void function validateRequired(required struct fields){ var missing=[]; for(var f in variables.requiredFields) if(!len(trim(arguments.fields[f] ?: ""))) arrayAppend(missing,f); if(arrayLen(missing)) throw(type="Logicore.Validation",message="Missing required field(s): "&arrayToList(missing,", ")); }
-    private struct function rowToStruct(required query q, required numeric n){var s={};for(var c in listToArray(q.columnList))s[c]=q[c][n];return s;}
+    private struct function rowToStruct(required query q, required numeric n){var s={};for(var c in listToArray(q.columnList))s[lCase(c)]=q[c][n];return s;}
     private array function queryToArray(required query q){var a=[];for(var i=1;i<=q.recordCount;i++)arrayAppend(a,rowToStruct(q,i));return a;}
 }

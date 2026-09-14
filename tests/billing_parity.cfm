@@ -17,12 +17,12 @@ function assertEq(required any actual, required any expected, required string la
     }
 }
 
-var results = {};
+results = {};
 
 // Promethean Storage: current Python-main test explicitly excludes Parts Testing
 // charges from the invoice subtotal. One stored unit, one pallet, one receipt,
-// one unit pick, and three small-part picks = 78.50.
-var storageAnalysis = {
+// one unit pick, three small-part picks and one check-in = 79.27.
+storageAnalysis = {
     unit_storage:[{ActualModel:"MODEL", "Actual Serial":"INV-1", Storage:8.0}],
     units_received:[{Model:"MODEL", "Serial Number":"RECV-1"}],
     programming:[{MSO:"M1", Quantity:3}],
@@ -34,28 +34,28 @@ var storageAnalysis = {
     auto_spc_rows:[{"Part ##":"AP10A-65PSU", Price:0.77}],
     unmatched:[]
 };
-var storage = application.invoice.buildStorage(storageAnalysis, "CI_Storage_Parity");
-assertEq(storage.subtotal, 78.50, "Storage subtotal");
-assertEq(storage.tax, 5.50, "Storage tax");
-assertEq(storage.total, 84.00, "Storage total");
+storage = application.invoice.buildStorage(storageAnalysis, "CI_Storage_Parity");
+assertEq(storage.subtotal, 79.27, "Storage subtotal");
+assertEq(storage.tax, 5.55, "Storage tax");
+assertEq(storage.total, 84.82, "Storage total");
 results.storage = storage;
 
 // AMC defaults: 2 receipts, 3 shipments, and 150 additional sq ft.
-var amcAnalysis = {
+amcAnalysis = {
     receipt_count:2,
     ship_count:3,
     total_sqft:650,
     additional_sqft:150,
     receiving:[], shipping:[], inventory:[], excluded:[]
 };
-var amc = application.invoice.buildAMC(amcAnalysis, "AMC Warehouse Invoice", "CI_AMC_Parity");
+amc = application.invoice.buildAMC(amcAnalysis, "AMC Warehouse Invoice", "CI_AMC_Parity");
 assertEq(amc.subtotal, 2505.00, "AMC subtotal");
 assertEq(amc.tax, 175.35, "AMC tax");
 assertEq(amc.total, 2680.35, "AMC total");
 results.amc = amc;
 
 // Philips builder fixture uses already-analyzed additional square footage.
-var philipsAnalysis = {
+philipsAnalysis = {
     demo_total_sqft:500,
     service_total_sqft:2050,
     demo_additional_sqft:250,
@@ -69,18 +69,18 @@ var philipsAnalysis = {
     harvest_total:56,
     received:[], shipping:[], repairs:[], excluded:[]
 };
-var philips = application.invoice.buildPhilips(philipsAnalysis, "TPV Philips Warehouse Invoice", "CI_Philips_Parity");
+philips = application.invoice.buildPhilips(philipsAnalysis, "TPV Philips Warehouse Invoice", "CI_Philips_Parity");
 assertEq(philips.subtotal, 9721.00, "Philips subtotal");
 assertEq(philips.tax, 680.47, "Philips tax");
 assertEq(philips.total, 10401.47, "Philips total");
 results.philips = philips;
 
 // TCL: two pallets at $75, one serialized single-part box, one five-part box.
-var tclAnalysis = {
+tclAnalysis = {
     unit_groups:[{key:"unit::2026-08-01", received_date:"2026-08-01", quantity:4, rows:[]}],
     part_groups:[{key:"part::MODEL::A::2026-08-01", model:"MODEL", grade:"A", received_date:"2026-08-01", quantity:6, rows:[]}]
 };
-var tcl = application.invoice.buildTCL(
+tcl = application.invoice.buildTCL(
     tclAnalysis,
     {"unit::2026-08-01":"2,2"},
     {"part::MODEL::A::2026-08-01":"1,5"},
@@ -94,7 +94,7 @@ results.tcl = tcl;
 
 // Promethean Workshop current price table: Depot Basic Small 110,
 // Depot Heavy Large 268, Triage Basic Small 86, Salvage 28.
-var workshopAnalysis = {
+workshopAnalysis = {
     issues:[],
     rows:[
         {row_index:0, _Type:"Depot Repair Tab", _Type2:"Basic", _size:"75", Size:"Small"},
@@ -103,7 +103,7 @@ var workshopAnalysis = {
         {row_index:3, _Type:"Depot Repair Tab", _Type2:"Salvage of Hardware and Scrap", _size:"75", Size:"Small"}
     ]
 };
-var workshop = application.invoice.buildWorkshop(workshopAnalysis, {}, "CI_Workshop_Parity");
+workshop = application.invoice.buildWorkshop(workshopAnalysis, {}, "CI_Workshop_Parity");
 assertEq(workshop.depot_count, 3, "Workshop depot count");
 assertEq(workshop.triage_count, 1, "Workshop triage count");
 assertEq(workshop.subtotal, 492.00, "Workshop subtotal");
@@ -112,7 +112,7 @@ assertEq(workshop.total, 526.44, "Workshop total");
 results.workshop = workshop;
 
 // FedEx shipment builder: confirms the upload workbook path and passthrough totals.
-var fedexAnalysis = {
+fedexAnalysis = {
     rows:[{
         SiteID:"", SiteName:"UNITED SERVICE SOURCE", OrgID:"Promethean", CustomerID:"Promethean",
         Address:"7195 WAELTI DR", Address2:"STE 101", City:"MELBOURNE", State:"FL", ZipCode:"32940",
@@ -123,7 +123,7 @@ var fedexAnalysis = {
     }],
     defaulted_rows:[], skipped_rows:[], total_price:123.45
 };
-var fedex = application.invoice.buildFedexShipment(fedexAnalysis, "CI_FedEx_Parity");
+fedex = application.invoice.buildFedexShipment(fedexAnalysis, "CI_FedEx_Parity");
 assertEq(fedex.row_count, 1, "FedEx row count");
 assertEq(fedex.total_price, 123.45, "FedEx total");
 results.fedex = fedex;

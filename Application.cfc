@@ -9,6 +9,7 @@ component output=false {
     this.sessionCookie = {httpOnly:true, secure:false, sameSite:"Lax"};
     this.scriptProtect = "all";
     this.datasource = "logicore";
+    this.javaSettings = {loadPaths:[variables.rootPath & "lib"],loadColdFusionClassPath:true,reloadOnChange:false};
     this.datasources["logicore"] = {
         class: "org.h2.Driver",
         connectionString: "jdbc:h2:file:" & replace(variables.rootPath, "\\", "/", "all") & "data/logicore;MODE=LEGACY;DATABASE_TO_UPPER=FALSE;AUTO_SERVER=TRUE",
@@ -43,6 +44,7 @@ component output=false {
             excelService=application.excel
         );
         application.philipsReport = new services.PhilipsReportService(excelService=application.excel, configService=application.configService, outputPath=application.outputPath);
+        application.trainingPdf = new services.TrainingPdfService();
         application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory = new services.InventoryService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory.bootstrap();
@@ -52,7 +54,14 @@ component output=false {
     }
 
     boolean function onRequestStart(string targetPage) {
-        if (structKeyExists(url, "reload") && url.reload == "1") onApplicationStart();
+        var requestPath=listFirst(cgi.request_uri?:"/","?");
+        var isCI=createObject("java","java.lang.System").getenv("CI")=="true";
+        var internal=reFindNoCase("^/(data|uploads|outputs|services|routes|config|migration|template)/",requestPath)||reFindNoCase("^/(Application\.cfc|server\.json|\.CFConfig\.json|MIGRATION_PARITY\.md|README\.md)$",requestPath);
+        var ciFixture=isCI&&requestPath=="/tests/billing_parity.cfm";
+        if((internal||left(requestPath,7)=="/tests/")&&!ciFixture){
+            var response=getPageContext().getResponse();response.setStatus(404);response.setContentType("text/plain; charset=utf-8");writeOutput("Not Found");return false;
+        }
+        if (isCI && structKeyExists(url, "reload") && url.reload == "1") onApplicationStart();
         if (!structKeyExists(session, "sid")) session.sid = replace(createUUID(), "-", "", "all");
         return true;
     }

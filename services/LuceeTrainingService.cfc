@@ -120,6 +120,6 @@ component output=false {
     private numeric function newestId(required string tableName){if(!listFindNoCase("training_weeks,training_topics,training_videos,training_people,training_sessions",arguments.tableName))throw(type="Logicore.Training",message="Invalid table.");var q=queryExecute("SELECT MAX(id) id FROM "&arguments.tableName,{}, {datasource:variables.datasource});return val(q.id[1]);}
     private numeric function scalar(required string sql){var q=queryExecute(arguments.sql,{}, {datasource:variables.datasource});var c=listFirst(q.columnList);return val(q[c][1]);}
     private string function safeName(required string s){var x=reReplace(arguments.s,"[^A-Za-z0-9._ -]","_","all");return len(trim(x))?trim(x):"file";}
-    private struct function row(required query q,required numeric n){var s={};for(var c in listToArray(q.columnList))s[c]=q[c][n];return s;}
+    private struct function row(required query q,required numeric n){var s={};for(var c in listToArray(q.columnList))s[lCase(c)]=q[c][n];return s;}
     private array function toArray(required query q){var a=[];for(var i=1;i<=q.recordCount;i++)arrayAppend(a,row(q,i));return a;}
 }

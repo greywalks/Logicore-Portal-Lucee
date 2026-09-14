@@ -139,7 +139,7 @@ component output=false {
                 if (rd <= repairDate && (isNull(bestPrior) || rd > bestPrior)) { bestPrior = rd; bestPriorRow = rr; }
             }
             var recvRow = structCount(bestPriorRow) ? bestPriorRow : earliestRow;
-            var receivedDate = structCount(bestPriorRow) ? bestPrior : earliestAny;
+            var receivedDate = structCount(bestPriorRow) ? bestPrior : (isNull(earliestAny)?"":earliestAny);
             arrayAppend(repairs, {
                 "Repair Date": repairDate,
                 "Received Date": isNull(receivedDate) ? "" : receivedDate,
@@ -190,7 +190,7 @@ component output=false {
     }
 
     private any function asDateSafe(any raw="") {
-        if (isDate(arguments.raw)) return arguments.raw;
+        if (isDate(arguments.raw)) return parseDateTime(arguments.raw);
         var s = trim(arguments.raw & "");
         if (!len(s)) return javacast("null", "");
         try { return parseDateTime(s); } catch (any ignored) { return javacast("null", ""); }

@@ -70,30 +70,25 @@ component output=false {
     void function resetAmcPrices(){if(fileExists(variables.configPath&"amc_prices.json"))fileDelete(variables.configPath&"amc_prices.json");}
 
     struct function readDimensionsWorkbook(required string path){
-        var book=spreadsheetRead(arguments.path);
-        var q=spreadsheetGetData(book,1,1,spreadsheetGetLastRow(book),2,true);
+        var rows=application.excel.readFirstSheet(arguments.path);
         var dims={};
-        // cfspreadsheet returns column labels from the first row when headerRow=true.
-        for(var row in q){
-            var model=""; var sqft="";
+        for(var row in rows){
+            var model="";var sqft="";
             for(var key in row){
-                var nk=lCase(reReplace(key,"[^a-z0-9]","","all"));
-                if(find("model",nk)) model=trim(row[key]&"");
-                if(find("sqft",nk) || find("squarefeet",nk) || nk=="footprint") sqft=row[key];
+                var nk=lCase(key);
+                if(find("model",nk))model=trim(row[key]&"");
+                if(find("sq",nk)||find("footage",nk)||find("footprint",nk))sqft=row[key];
             }
-            if(len(model) && isNumeric(sqft) && val(sqft)>=0) dims[uCase(model)]=val(sqft);
+            if(len(model)&&isNumeric(sqft)&&sqft>=0)dims[uCase(model)]=sqft;
         }
-        if(!structCount(dims)) throw(type="Logicore.Validation",message="No Model / Sq Ft rows were found in the uploaded workbook.");
+        if(!structCount(dims))throw(type="Logicore.Validation",message="No Model / Sq Footage rows were found in the uploaded workbook.");
         return dims;
     }
 
-    string function writeDimensionsWorkbook(required struct dims, required string outputPath, string sheetName="Dimensions"){
-        var sheet=spreadsheetNew(arguments.sheetName,true);
-        spreadsheetAddRow(sheet,"Model,Sq Ft");
-        var keys=structKeyArray(arguments.dims); arraySort(keys,"textnocase");
-        for(var model in keys) spreadsheetAddRow(sheet,'"'&replace(model,'"','""','all')&'",'&arguments.dims[model]);
-        spreadsheetFormatRow(sheet,{bold:true,fgcolor:"2F3B4C",fontcolor:"FFFFFF"},1);
-        spreadsheetWrite(sheet,arguments.outputPath,true);
+    string function writeDimensionsWorkbook(required string outputPath, required struct dims, string sheetName="Dimensions"){
+        var rows=[];var keys=structKeyArray(arguments.dims);arraySort(keys,"textnocase");
+        for(var model in keys)arrayAppend(rows,{"Model":model,"Sq Footage":arguments.dims[model]});
+        application.excel.writeWorkbook(arguments.outputPath,[{name:arguments.sheetName,headers:["Model","Sq Footage"],rows:rows}]);
         return arguments.outputPath;
     }
 }

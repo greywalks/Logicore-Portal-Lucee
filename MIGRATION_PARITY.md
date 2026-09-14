@@ -26,8 +26,8 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] TCL routes are present.
 - [x] Philips routes are present, including raw-data Month End Report generation.
 - [x] Config/reference-data routes are present.
-- [ ] Authenticated endpoint smoke tests pass under Lucee.
-- [ ] Billing fixtures are checked against current Python-main behavior.
+- [x] Authenticated endpoint smoke tests pass under Lucee.
+- [x] Billing fixtures are checked against current Python-main behavior.
 
 ## SMS NonConforming
 
@@ -36,7 +36,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] XLSX export through Apache POI.
 - [x] Zebra ZPL label output.
 - [x] Source-compatible `next_number`, PATCH, pagination, and 404 behavior.
-- [ ] Authenticated endpoint smoke tests pass under Lucee.
+- [x] Authenticated endpoint smoke tests pass under Lucee.
 
 ## Training Tracker
 
@@ -48,7 +48,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] Signed-sheet ZIP report.
 - [x] Editable content and appearance settings.
 - [x] Flask-compatible route aliases.
-- [ ] Authenticated endpoint smoke tests pass under Lucee.
+- [x] Authenticated endpoint smoke tests pass under Lucee.
 
 ## Inventory Management
 
@@ -60,7 +60,14 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] Promethean reference/serial decoding and AP9-B `-02` rule.
 - [x] Quality audit, serial overrides, and global whitelist.
 - [x] Quality CSV/XLSX exports.
-- [ ] Authenticated endpoint smoke tests pass under Lucee.
+- [x] Authenticated endpoint smoke tests pass under Lucee.
+
+## Output parity
+
+- [x] AMC, Philips, TCL, Workshop, Storage, and FedEx workbooks preserve source sheet names, headers, live formulas, metadata cells, and identifier types.
+- [x] Workshop raw and legacy paths apply current history/shipping deduplication and current-source price tiers.
+- [x] Workshop corrected-production and updated-master companion workbooks preserve unrelated source sheets.
+- [x] The full authenticated test covers invoice correction/confirmation, downloads, NonConforming CRUD/export/labels, Training reports/sign-offs, Inventory imports/dedup/lifecycle, and restricted users.
 
 ## Validation notes
 

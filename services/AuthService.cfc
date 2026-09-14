@@ -118,10 +118,10 @@ component output=false {
     void function setPermission(required numeric userId, required string section, string subsection="", string role="access") {
         if (len(arguments.subsection)) {
             queryExecute("DELETE FROM permissions WHERE user_id=:uid AND section=:sec AND subsection=:sub", {uid:arguments.userId,sec:arguments.section,sub:arguments.subsection}, {datasource:variables.datasource});
-            queryExecute("INSERT INTO permissions(user_id,section,subsection,role) VALUES(:uid,:sec,:sub,:role)", {uid:arguments.userId,sec:arguments.section,sub:arguments.subsection,role:arguments.role=="access"?javacast("null",""):arguments.role}, {datasource:variables.datasource});
+            queryExecute("INSERT INTO permissions(user_id,section,subsection,role) VALUES(:uid,:sec,:sub,:role)", {uid:arguments.userId,sec:arguments.section,sub:arguments.subsection,role:{value:arguments.role,null:arguments.role=="access"}}, {datasource:variables.datasource});
         } else {
             queryExecute("DELETE FROM permissions WHERE user_id=:uid AND section=:sec AND subsection IS NULL", {uid:arguments.userId,sec:arguments.section}, {datasource:variables.datasource});
-            queryExecute("INSERT INTO permissions(user_id,section,subsection,role) VALUES(:uid,:sec,NULL,:role)", {uid:arguments.userId,sec:arguments.section,role:arguments.role=="access"?javacast("null",""):arguments.role}, {datasource:variables.datasource});
+            queryExecute("INSERT INTO permissions(user_id,section,subsection,role) VALUES(:uid,:sec,NULL,:role)", {uid:arguments.userId,sec:arguments.section,role:{value:arguments.role,null:arguments.role=="access"}}, {datasource:variables.datasource});
         }
     }
 
@@ -136,6 +136,6 @@ component output=false {
         if (arrayLen(parts)>=2) return uCase(left(parts[1],1)&left(parts[2],1)); return len(username)>=2 ? uCase(left(username,2)) : "XX";
     }
 
-    private struct function rowToStruct(required query q, required numeric rowNumber) { var s={}; for (var col in listToArray(arguments.q.columnList)) s[col]=arguments.q[col][arguments.rowNumber]; return s; }
+    private struct function rowToStruct(required query q, required numeric rowNumber) { var s={}; for (var col in listToArray(arguments.q.columnList)) s[lCase(col)]=arguments.q[col][arguments.rowNumber]; return s; }
     private array function queryToArray(required query q) { var a=[]; for (var i=1;i<=arguments.q.recordCount;i++) arrayAppend(a,rowToStruct(arguments.q,i)); return a; }
 }

@@ -57,7 +57,6 @@ Application.cfc                 Lucee application bootstrap + datasource
 index.cfm                       Main router/API surface
 routes/
   TrainingRoutes.cfm            Training Tracker parity URL surface
-  TrainingSignoffPdf.cfm        Printable sign-off PDF renderer
   InventoryRoutes.cfm           Inventory Management parity URL surface
 services/
   AuthService.cfc               Users and permissions behavior
@@ -65,16 +64,20 @@ services/
   ConfigService.cfc             Pricing/reference configuration
   ExcelService.cfc              XLSX reading/writing with Apache POI
   InvoiceService.cfc            Invoice analysis/build engines
+  InvoiceWorkbookService.cfc    Source-compatible invoice workbook renderer
   NonConformingService.cfc      SMS NonConforming behavior
   LuceeNonConformingService.cfc Lucee runtime/export adapter
   LuceeTrainingService.cfc      Native Training Tracker persistence/workflows
+  TrainingPdfService.cfc        Native printable sign-off PDF renderer
   InventoryService.cfc          Native Inventory Management lifecycle/quality engine
   OutputService.cfc             Generated-file ownership + cleanup
+lib/                            Pinned Apache POI runtime dependencies
 static/                         Preserved frontend CSS/JS/images
 views/portal.html               Build-time-rendered portal shell
-template/                       Original XLSX templates, preserved byte-for-byte
+template/                       Original templates and source-derived blank layouts
 config/                         Imported reference/default JSON
 migration/                      Source-template parity references + renderer
+tests/                          Deterministic billing and authenticated workflow parity tests
 .github/workflows/              Asset sync and real Lucee smoke tests
 ```
 
