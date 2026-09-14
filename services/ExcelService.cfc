@@ -105,7 +105,7 @@ component output=false {
         var IndexedColors=createObject("java","org.apache.poi.ss.usermodel.IndexedColors");
         var hs=wb.createCellStyle();hs.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());hs.setFillPattern(createObject("java","org.apache.poi.ss.usermodel.FillPatternType").SOLID_FOREGROUND);var hf=wb.createFont();hf.setBold(true);hf.setColor(IndexedColors.WHITE.getIndex());hs.setFont(hf);
         var title=wb.createCellStyle();var tf=wb.createFont();tf.setBold(true);tf.setFontHeightInPoints(javaCast("short",14));title.setFont(tf);
-        var money=wb.createCellStyle();money.setDataFormat(wb.createDataFormat().getFormat("$#,##0.00"));
+        var money=wb.createCellStyle();money.setDataFormat(wb.createDataFormat().getFormat("$##,####0.00"));
         var moneyBold=wb.createCellStyle();moneyBold.cloneStyleFrom(money);var bf=wb.createFont();bf.setBold(true);moneyBold.setFont(bf);
         var dateStyle=wb.createCellStyle();dateStyle.setDataFormat(wb.createDataFormat().getFormat("mm-dd-yyyy"));
         return {header:hs,title:title,money:money,moneyBold:moneyBold,date:dateStyle};
