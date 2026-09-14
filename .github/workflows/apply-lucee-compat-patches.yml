@@ -1,0 +1,41 @@
+name: Apply Lucee compatibility patches
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-lucee-compat-patches.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch CFML compatibility issues
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('services/InventoryService.cfc')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('if(!arrayLen(bytes))', 'if(!len(bytes))')
+          s = s.replace('return {preset:p,start:s,end:e,start_display=dateFormat(s,"mmm d, yyyy"),end_display=dateFormat(e,"mmm d, yyyy")};', 'return {preset:p,start:s,end:e,start_display:dateFormat(s,"mmm d, yyyy"),end_display:dateFormat(e,"mmm d, yyyy")};')
+          s = s.replace('marker GTE "G"', 'asc(marker) >= asc("G")')
+          s = s.replace('private numeric function scalar(required string sql){return queryExecute(arguments.sql,{}, {datasource:variables.datasource})[1][1];}', 'private numeric function scalar(required string sql){var q=queryExecute(arguments.sql,{}, {datasource:variables.datasource});var c=listFirst(q.columnList);return q[c][1];}')
+          p.write_text(s, encoding='utf-8')
+
+          server = Path('server.json')
+          t = server.read_text(encoding='utf-8')
+          t = t.replace(',037A27FF-0B80-4CBA-B954BEBD790B460E;version=3.0.4', '')
+          server.write_text(t, encoding='utf-8')
+
+          wf = Path('.github/workflows/apply-lucee-compat-patches.yml')
+          wf.unlink()
+      - name: Commit compatibility fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix Inventory CFML compatibility and remove unused spreadsheet extension"
+          git push
