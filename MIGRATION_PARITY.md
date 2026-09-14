@@ -4,10 +4,10 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 
 ## Runtime gate
 
-- [ ] Lucee 7 boots cleanly on a fresh GitHub Actions runner.
-- [ ] `/healthz` succeeds.
-- [ ] `/login` renders and the default first-run administrator can authenticate.
-- [ ] Authenticated portal shell renders.
+- [x] Lucee 7 boots cleanly on a fresh GitHub Actions runner.
+- [x] `/healthz` succeeds.
+- [x] `/login` renders and the default first-run administrator can authenticate.
+- [x] Authenticated portal shell renders.
 
 ## Portal and permissions
 
@@ -64,7 +64,7 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 
 ## Validation notes
 
-Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals and request-level scopes have been normalized for Lucee 7, CommandBox SES routing uses `cgi.path_info`, and one-time migration workflows are removed after their patches land.
+Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI. CFML string literals, URL-fragment hashes, and request-level scopes have been normalized for Lucee 7, CommandBox SES routing uses `cgi.path_info`, and one-time migration workflows are removed after their patches land.
 
 ## Known source inconsistency to preserve during parity testing
 
