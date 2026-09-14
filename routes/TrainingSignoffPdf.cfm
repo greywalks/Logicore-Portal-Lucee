@@ -3,7 +3,7 @@
 <cfset attendees = request.trainingPdfAttendees>
 <cfdocument format="pdf" name="ttPdf" pageType="letter" marginTop="0.45" marginBottom="0.45" marginLeft="0.5" marginRight="0.5">
 <!doctype html><html><head><meta charset="utf-8"><style>
-body{font-family:Arial,sans-serif;color:#111;font-size:10pt}h1{font-size:20pt;margin:0 0 6px}.meta{margin:0 0 18px;color:#444}.line{border-bottom:1px solid #333;height:26px;margin:0 0 12px}.row{display:flex;gap:14px}.col{width:49%}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #777;padding:7px;text-align:left}th{background:#e9eef3}.small{font-size:8pt;color:#555}</style></head><body>
+body{font-family:Arial,sans-serif;color:#111;font-size:10pt}h1{font-size:20pt;margin:0 0 6px}.meta{margin:0 0 18px;color:#444}.line{border-bottom:1px solid #333;height:26px;margin:0 0 12px}.row{display:flex;gap:14px}.col{width:49%}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #777;padding:7px;text-align:left}th{background:##e9eef3}.small{font-size:8pt;color:#555}</style></head><body>
 <h1>Training Sign-off Sheet</h1>
 <div class="meta"><strong>Week <cfoutput>#numberFormat(tt.week_number,"00")#</cfoutput>:</strong> <cfoutput>#encodeForHtml(tt.week_title)#</cfoutput><br>
 <strong>Trainer:</strong> <cfoutput>#encodeForHtml(tt.trainer_name)#</cfoutput> &nbsp; <strong>Date:</strong> <cfoutput>#encodeForHtml(tt.session_date ?: "")#</cfoutput> &nbsp; <strong>Location:</strong> <cfoutput>#encodeForHtml(tt.location ?: "")#</cfoutput></div>
