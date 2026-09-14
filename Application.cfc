@@ -42,7 +42,7 @@ component output=false {
             outputService=application.outputs,
             excelService=application.excel
         );
-        application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath);
+        application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory = new services.InventoryService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory.bootstrap();
 
