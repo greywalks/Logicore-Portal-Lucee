@@ -1,0 +1,79 @@
+name: Fix page scope and Training parity
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-page-scope-and-training-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch CFML page scope and Training semantics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def strip_page_var(path, marker):
+              p = Path(path)
+              s = p.read_text(encoding='utf-8')
+              if marker not in s:
+                  raise SystemExit(f'Marker not found in {path}: {marker}')
+              before, after = s.split(marker, 1)
+              after = after.replace('var ', '')
+              p.write_text(before + marker + after, encoding='utf-8')
+
+          strip_page_var('index.cfm', 'var path=routePath();')
+          strip_page_var('routes/TrainingRoutes.cfm', 'request.ttUser=requireLogin();')
+          strip_page_var('routes/InventoryRoutes.cfm', 'var iu=requireLogin();')
+
+          # The marker declarations themselves are page scope too.
+          p = Path('index.cfm')
+          s = p.read_text(encoding='utf-8').replace('var path=routePath();var method=', 'path=routePath();method=')
+          p.write_text(s, encoding='utf-8')
+          p = Path('routes/InventoryRoutes.cfm')
+          s = p.read_text(encoding='utf-8').replace('var iu=requireLogin();', 'iu=requireLogin();')
+          p.write_text(s, encoding='utf-8')
+
+          # Python source counts distinct attendees across all sessions in a week.
+          p = Path('services/LuceeTrainingService.cfc')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              'SELECT COUNT(*) attended,COUNT(CASE WHEN a.signature IS NOT NULL THEN 1 END) signed FROM training_attendance a JOIN training_sessions s ON s.id=a.session_id WHERE s.week_id=:id AND a.attended=1',
+              'SELECT COUNT(DISTINCT a.person_id) attended,COUNT(DISTINCT CASE WHEN a.signature IS NOT NULL THEN a.person_id END) signed FROM training_attendance a JOIN training_sessions s ON s.id=a.session_id WHERE s.week_id=:id AND a.attended=1'
+          )
+          old = 'var lo=len(arguments.startWeek)?val(arguments.startWeek):q.lo[1];var hi=len(arguments.endWeek)?val(arguments.endWeek):q.hi[1];if(lo>hi){var t=lo;lo=hi;hi=t;}return{ok:true,lo:lo,hi:hi};'
+          new = 'var lo=q.lo[1];var hi=q.hi[1];if(len(arguments.startWeek)){var sq=queryExecute("SELECT week_number FROM training_weeks WHERE id=:id",{id:val(arguments.startWeek)},{datasource:variables.datasource});if(!sq.recordCount)return{ok:false,error:"Invalid start week."};lo=sq.week_number[1];}if(len(arguments.endWeek)){var eq=queryExecute("SELECT week_number FROM training_weeks WHERE id=:id",{id:val(arguments.endWeek)},{datasource:variables.datasource});if(!eq.recordCount)return{ok:false,error:"Invalid end week."};hi=eq.week_number[1];}if(lo>hi){var t=lo;lo=hi;hi=t;}return{ok:true,lo:lo,hi:hi};'
+          if old in s:
+              s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+
+          # Parse the week id in /week/<id>/session/new using the regex match,
+          # matching the rest of the source-compatible routes.
+          p = Path('routes/TrainingRoutes.cfm')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              'if(reFind("^/week/[0-9]+/session/new$",sub)&&method=="POST"){ttRequireEdit();wid=val(listGetAt(sub,3,"/"));application.training.createSession',
+              'sn=reFind("^/week/([0-9]+)/session/new$",sub,1,true);if(sn.len[1]&&method=="POST"){ttRequireEdit();wid=ttSessionIdFrom(sn,2);application.training.createSession'
+          )
+          p.write_text(s, encoding='utf-8')
+
+          # Delete this one-time workflow after it has done its job.
+          me = Path('.github/workflows/fix-page-scope-and-training-parity.yml')
+          if me.exists(): me.unlink()
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Fix Lucee page scope and Training parity"
+          git push
