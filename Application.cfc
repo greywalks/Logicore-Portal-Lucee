@@ -58,10 +58,12 @@ component output=false {
     }
 
     void function onError(any exception, string eventName) {
-        writeLog(type="error", file="logicore", text=exception.message & " | " & exception.detail);
+        var detail = (exception.message ?: "") & " | " & (exception.detail ?: "");
+        writeLog(type="error", file="logicore", text=detail);
         if (!isDefined("request.responseCommitted") || !request.responseCommitted) {
             cfheader(statusCode=500, statusText="Internal Server Error");
-            writeOutput("Logicore Portal encountered an unexpected error.");
+            var isCI = createObject("java","java.lang.System").getenv("CI") == "true";
+            writeOutput(isCI ? "Logicore CI error: " & detail : "Logicore Portal encountered an unexpected error.");
         }
     }
 }
