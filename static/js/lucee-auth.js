@@ -11,6 +11,20 @@
     if (el) el.classList.add('hidden');
   }
 
+  function wireInventoryNav() {
+    const inventory = document.getElementById('portal-nav-tbd2');
+    if (!inventory) return;
+    inventory.removeAttribute('data-portal');
+    inventory.removeAttribute('onclick');
+    inventory.id = 'portal-nav-inventory-management';
+    const label = inventory.querySelector('span');
+    if (label) label.textContent = 'Inventory Management';
+    inventory.addEventListener('click', function (event) {
+      event.preventDefault();
+      window.location.href = '/inventory-management/';
+    });
+  }
+
   function enforceNav() {
     if (!superadmin) {
       if (!sections.has('invoice-generator')) {
@@ -31,13 +45,13 @@
       }
       if (!sections.has('training-tracker')) hide('portal-nav-training-tracker');
       if (!sections.has('tbd2')) {
-        hide('portal-nav-tbd2');
+        hide('portal-nav-inventory-management');
         hide('portal-content-tbd2');
       }
       hide('admin-permissions-link');
     }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', enforceNav);
-  else enforceNav();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { wireInventoryNav(); enforceNav(); });
+  else { wireInventoryNav(); enforceNav(); }
 })();

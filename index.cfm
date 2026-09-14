@@ -23,6 +23,9 @@ for(var u in users){var perms=application.auth.getPermissions(u.id);out&='<div c
 
 var path=routePath();var method=uCase(cgi.request_method?:"GET");
 
+// Inventory Management is a real mounted workspace (legacy permission key: tbd2).
+if(left(path,len("/inventory-management"))=="/inventory-management"){include "routes/InventoryRoutes.cfm";abort;}
+
 // health / version
 if(path=="/healthz")jsonOut({ok:true,status:"healthy",engine:"Lucee",version:"9.0-lucee"});
 if(path=="/version")jsonOut({ok:true,version:"9.0-lucee",runtime:"Lucee CFML"});
