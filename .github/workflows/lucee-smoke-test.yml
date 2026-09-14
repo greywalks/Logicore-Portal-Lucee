@@ -54,7 +54,12 @@ jobs:
 
       - name: Verify Training Tracker
         run: |
-          curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/training-tracker/ -o training.body
+          code=$(curl -sS -b cookies.txt -D training.headers -o training.body -w '%{http_code}' http://127.0.0.1:5000/training-tracker/)
+          echo "Training HTTP: $code"
+          cat training.headers
+          head -c 4000 training.body || true
+          echo
+          test "$code" = "200"
           grep -q "Training" training.body
 
       - name: Verify Inventory Management
@@ -75,13 +80,12 @@ jobs:
       - name: Show Lucee logs on failure
         if: failure()
         run: |
-          box server status || true
-          echo "--- captured HTTP bodies ---"
-          for f in *.headers *.body *.json; do if [ -f "$f" ]; then echo "--- $f ---"; cat "$f"; fi; done
-          echo "--- repository logs ---"
-          find . -maxdepth 6 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 180 {} \; || true
-          echo "--- CommandBox / Lucee logs ---"
-          find "$HOME/.CommandBox/server" -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 220 {} \; || true
+          echo "--- captured responses ---"
+          for f in training.headers training.body inventory.body nonconforming.json storage-prices.json; do if [ -f "$f" ]; then echo "--- $f ---"; head -c 8000 "$f"; echo; fi; done
+          echo "--- Logicore application errors ---"
+          find "$HOME/.CommandBox/server" -type f -name 'logicore.log' -print -exec tail -n 80 {} \; || true
+          echo "--- application log tail ---"
+          find "$HOME/.CommandBox/server" -type f -name 'application.log' -print -exec tail -n 80 {} \; || true
 
       - name: Stop Lucee
         if: always()
