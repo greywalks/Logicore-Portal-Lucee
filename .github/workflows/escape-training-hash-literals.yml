@@ -1,0 +1,34 @@
+name: Escape Training CFML hash literals
+
+on:
+  push:
+    paths:
+      - '.github/workflows/escape-training-hash-literals.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Escape literal hashes inside CFScript strings
+        shell: python
+        run: |
+          from pathlib import Path
+          files = [Path('services/LuceeTrainingService.cfc'), Path('routes/TrainingRoutes.cfm')]
+          colors = ['#2fd8a6','#58d9ff','#0a0d12','#111720','#334155','#eef2f6','#94a3b8','#475569','#07100d','#ef4444']
+          for p in files:
+              s = p.read_text(encoding='utf-8')
+              for color in colors:
+                  s = s.replace(color, '#' + color)
+              p.write_text(s, encoding='utf-8')
+          Path('.github/workflows/escape-training-hash-literals.yml').unlink()
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Escape Training CFML hash literals"
+          git push
