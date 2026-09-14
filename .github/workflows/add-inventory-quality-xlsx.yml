@@ -1,0 +1,36 @@
+name: Add Inventory quality XLSX parity export
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-inventory-quality-xlsx.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add quality XLSX route
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('routes/InventoryRoutes.cfm')
+          s=p.read_text(encoding='utf-8')
+          anchor='if(ip=="/quality/export.csv"&&method=="GET"){var audit=application.inventory.qualityAudit();if(!structCount(audit))redirectTo("/inventory-management/quality");sendTextDownload(application.inventory.qualityCsv(audit),"Promethean_Current_Inventory_Audit.csv","text/csv; charset=utf-8");}\n'
+          addition=anchor+'''if(ip=="/quality/export.xlsx"&&method=="GET"){var audit=application.inventory.qualityAudit();if(!structCount(audit))redirectTo("/inventory-management/quality");var rows=[];for(var i in audit.issues)arrayAppend(rows,{"Record Type":"Issue","Issue Type":i.issue_type?:"","Severity":i.severity?:"","Serial Number":i.serial_number?:"","Grade":i.grade?:"","Recorded Model":i.model_number?:"","Expected / Approved Model":i.expected_model?:"","Warehouse":i.details.warehouse?:"","Rack":i.details.rack?:"","Bin":i.details.bin?:"","Source File":i.original_filename?:"","Source Row":i.source_row_key?:"","Detail":i.message?:""});for(var i in audit.unmatched)arrayAppend(rows,{"Record Type":"Needs model mapping","Issue Type":"Unmatched serial/model","Severity":"review","Serial Number":i.serial_number?:"","Grade":i.grade?:"","Recorded Model":i.model_number?:"","Expected / Approved Model":"","Warehouse":i.details.warehouse?:"","Rack":i.details.rack?:"","Bin":i.details.bin?:"","Source File":i.original_filename?:"","Source Row":i.source_row_key?:"","Detail":i.message?:""});var fn="Promethean_Current_Inventory_Audit.xlsx";application.excel.writeWorkbook(application.outputPath&fn,[{name:"Current Inventory Audit",headers:["Record Type","Issue Type","Severity","Serial Number","Grade","Recorded Model","Expected / Approved Model","Warehouse","Rack","Bin","Source File","Source Row","Detail"],rows:rows}]);cfheader(name="Content-Disposition",value='attachment; filename="'&fn&'"');cfcontent(file=application.outputPath&fn,type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",reset=true);abort;}\n'''
+          if '/quality/export.xlsx' not in s:
+              if anchor not in s: raise SystemExit('quality CSV anchor missing')
+              s=s.replace(anchor,addition,1)
+              s=s.replace('<a href="/inventory-management/quality/export.csv">Export CSV</a>','<a href="/inventory-management/quality/export.csv">Export CSV</a> · <a href="/inventory-management/quality/export.xlsx">Export Excel</a>')
+              p.write_text(s,encoding='utf-8')
+          Path('.github/workflows/add-inventory-quality-xlsx.yml').unlink()
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Inventory quality XLSX export"
+          git push
