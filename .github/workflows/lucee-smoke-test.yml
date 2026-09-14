@@ -1,0 +1,45 @@
+name: Lucee smoke test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up CommandBox
+        uses: Ortus-Solutions/setup-commandbox@v2
+
+      - name: Install CFConfig support
+        run: box install commandbox-cfconfig --force
+
+      - name: Start Lucee
+        run: |
+          box server start --noSaveSettings
+          sleep 15
+
+      - name: Verify health endpoint
+        run: |
+          curl --fail --show-error --retry 8 --retry-delay 3 http://127.0.0.1:5000/healthz
+
+      - name: Verify login page
+        run: |
+          curl --fail --show-error http://127.0.0.1:5000/login | grep -q "Sign in"
+
+      - name: Show Lucee logs on failure
+        if: failure()
+        run: |
+          box server status || true
+          find . -maxdepth 5 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 150 {} \; || true
+
+      - name: Stop Lucee
+        if: always()
+        run: box server stop || true
