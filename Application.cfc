@@ -42,6 +42,7 @@ component output=false {
             outputService=application.outputs,
             excelService=application.excel
         );
+        application.philipsReport = new services.PhilipsReportService(excelService=application.excel, configService=application.configService, outputPath=application.outputPath);
         application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory = new services.InventoryService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);
         application.inventory.bootstrap();
