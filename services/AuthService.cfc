@@ -23,7 +23,7 @@ component output=false {
             "invoice-generator": {label:"Invoice Generator", children:{promethean:"Promethean", amc:"AMC", tcl:"TCL", philips:"Philips", config:"Config"}},
             "sms-nonconforming": {label:"SMS NonConforming"},
             "training-tracker": {label:"Training Tracker", roles:["admin","editor","viewer"]},
-            "tbd2": {label:"TBD 2"}
+            "tbd2": {label:"Inventory Management"}
         };
     }
 
@@ -44,7 +44,6 @@ component output=false {
     }
 
     numeric function createUser(required string username, required string password, boolean isSuperadmin=false, string initials="") {
-        var result = {};
         queryExecute(
             "INSERT INTO users(username,password_hash,is_superadmin,initials) VALUES(:u,:p,:s,:i)",
             {
@@ -53,9 +52,10 @@ component output=false {
                 s:{value:arguments.isSuperadmin ? 1 : 0, cfsqltype:"cf_sql_integer"},
                 i:{value:len(trim(arguments.initials)) ? uCase(trim(arguments.initials)) : javacast("null", ""), null:!len(trim(arguments.initials)), cfsqltype:"cf_sql_varchar"}
             },
-            {datasource:variables.datasource, result:"result"}
+            {datasource:variables.datasource}
         );
-        return result.generatedKey ?: 0;
+        var created=queryExecute("SELECT id FROM users WHERE LOWER(username)=LOWER(:u)",{u:trim(arguments.username)},{datasource:variables.datasource});
+        return created.recordCount ? val(created.id[1]) : 0;
     }
 
     struct function authenticate(required string username, required string password) {
@@ -75,27 +75,18 @@ component output=false {
     }
 
     void function updateUser(required numeric id, string password="", any isSuperadmin=javacast("null",""), any initials=javacast("null","")) {
-        if (len(arguments.password)) {
-            queryExecute("UPDATE users SET password_hash=:p WHERE id=:id", {p:makePassword(arguments.password),id:arguments.id}, {datasource:variables.datasource});
-        }
-        if (!isNull(arguments.isSuperadmin)) {
-            queryExecute("UPDATE users SET is_superadmin=:s WHERE id=:id", {s:arguments.isSuperadmin?1:0,id:arguments.id}, {datasource:variables.datasource});
-        }
-        if (!isNull(arguments.initials)) {
-            queryExecute("UPDATE users SET initials=:i WHERE id=:id", {i:uCase(trim(arguments.initials)),id:arguments.id}, {datasource:variables.datasource});
-        }
+        if (len(arguments.password)) queryExecute("UPDATE users SET password_hash=:p WHERE id=:id", {p:makePassword(arguments.password),id:arguments.id}, {datasource:variables.datasource});
+        if (!isNull(arguments.isSuperadmin)) queryExecute("UPDATE users SET is_superadmin=:s WHERE id=:id", {s:arguments.isSuperadmin?1:0,id:arguments.id}, {datasource:variables.datasource});
+        if (!isNull(arguments.initials)) queryExecute("UPDATE users SET initials=:i WHERE id=:id", {i:uCase(trim(arguments.initials)),id:arguments.id}, {datasource:variables.datasource});
     }
 
-    void function deleteUser(required numeric id) {
-        queryExecute("DELETE FROM users WHERE id=:id", {id:arguments.id}, {datasource:variables.datasource});
-    }
+    void function deleteUser(required numeric id) { queryExecute("DELETE FROM users WHERE id=:id", {id:arguments.id}, {datasource:variables.datasource}); }
 
     boolean function hasAccess(required struct user, required string section, string subsection="") {
         if (!structCount(arguments.user)) return false;
         if (val(arguments.user.is_superadmin ?: 0) == 1) return true;
         var params = {uid:arguments.user.id, sec:arguments.section};
-        var sql = "SELECT id FROM permissions WHERE user_id=:uid AND section=:sec AND subsection IS NULL";
-        var q = queryExecute(sql, params, {datasource:variables.datasource});
+        var q = queryExecute("SELECT id FROM permissions WHERE user_id=:uid AND section=:sec AND subsection IS NULL", params, {datasource:variables.datasource});
         if (q.recordCount) return true;
         if (!len(arguments.subsection)) return false;
         params.sub = arguments.subsection;
@@ -116,16 +107,12 @@ component output=false {
         var children = registry[arguments.section].children;
         if (hasAccess(arguments.user, arguments.section)) return structKeyArray(children);
         var q = queryExecute("SELECT subsection FROM permissions WHERE user_id=:uid AND section=:sec AND subsection IS NOT NULL", {uid:arguments.user.id,sec:arguments.section}, {datasource:variables.datasource});
-        var out=[];
-        for (var row in q) arrayAppend(out,row.subsection);
-        return out;
+        var out=[]; for (var item in q) arrayAppend(out,item.subsection); return out;
     }
 
     struct function getPermissions(required numeric userId) {
         var q = queryExecute("SELECT section,subsection,role FROM permissions WHERE user_id=:id", {id:arguments.userId}, {datasource:variables.datasource});
-        var out={};
-        for (var row in q) out[row.section & "|" & (row.subsection ?: "")] = len(row.role ?: "") ? row.role : "access";
-        return out;
+        var out={}; for (var item in q) out[item.section & "|" & (item.subsection ?: "")] = len(item.role ?: "") ? item.role : "access"; return out;
     }
 
     void function setPermission(required numeric userId, required string section, string subsection="", string role="access") {
@@ -144,24 +131,11 @@ component output=false {
     }
 
     string function initialsFor(required struct user) {
-        var explicit = uCase(trim(arguments.user.initials ?: ""));
-        if (len(explicit)) return explicit;
-        var username = arguments.user.username ?: "";
-        var normalized = reReplace(username,"[._-]+"," ","all");
-        var parts = listToArray(normalized," ");
-        if (arrayLen(parts)>=2) return uCase(left(parts[1],1)&left(parts[2],1));
-        return len(username)>=2 ? uCase(left(username,2)) : "XX";
+        var explicit = uCase(trim(arguments.user.initials ?: "")); if (len(explicit)) return explicit;
+        var username = arguments.user.username ?: ""; var normalized = reReplace(username,"[._-]+"," ","all"); var parts = listToArray(normalized," ");
+        if (arrayLen(parts)>=2) return uCase(left(parts[1],1)&left(parts[2],1)); return len(username)>=2 ? uCase(left(username,2)) : "XX";
     }
 
-    private struct function rowToStruct(required query q, required numeric rowNumber) {
-        var s={};
-        for (var col in listToArray(arguments.q.columnList)) s[col]=arguments.q[col][arguments.rowNumber];
-        return s;
-    }
-
-    private array function queryToArray(required query q) {
-        var a=[];
-        for (var i=1;i<=arguments.q.recordCount;i++) arrayAppend(a,rowToStruct(arguments.q,i));
-        return a;
-    }
+    private struct function rowToStruct(required query q, required numeric rowNumber) { var s={}; for (var col in listToArray(arguments.q.columnList)) s[col]=arguments.q[col][arguments.rowNumber]; return s; }
+    private array function queryToArray(required query q) { var a=[]; for (var i=1;i<=arguments.q.recordCount;i++) arrayAppend(a,rowToStruct(arguments.q,i)); return a; }
 }
