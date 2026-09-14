@@ -1,0 +1,18 @@
+{
+  "name": "Logicore Portal Lucee",
+  "app": {
+    "cfengine": "lucee@7"
+  },
+  "web": {
+    "webroot": ".",
+    "directoryBrowsing": false,
+    "rewrites": {
+      "enable": true
+    },
+    "HTTP": {
+      "enable": true,
+      "port": 5000
+    }
+  },
+  "openBrowser": true
+}
