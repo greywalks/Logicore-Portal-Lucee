@@ -6,7 +6,7 @@ This repository is the **Lucee/CFML port** of [`greywalks/Logicore-Portal`](http
 
 - **Lucee 7** via CommandBox
 - **CFML** application/router and service layer
-- **H2** persistent database for portal authentication, SMS NonConforming, and Training Tracker
+- **H2** persistent database for portal authentication, SMS NonConforming, Training Tracker, and Inventory Management
 - **Apache POI** (through Lucee/Java interop) for Excel ingestion and generation
 - Existing **Tailwind/CSS/vanilla JavaScript** frontend preserved from the Flask project
 
@@ -22,7 +22,8 @@ This repository is the **Lucee/CFML port** of [`greywalks/Logicore-Portal`](http
   - Philips Warehouse & Repair Invoice
   - Config/reference-data administration
 - SMS NonConforming CRUD, search, XLSX export, numbering, and Zebra ZPL labels
-- Training Tracker weeks, topics, sessions, roster, attendance/signatures, and reporting
+- Training Tracker weeks, topics, videos, sessions, roster, attendance/signatures, scanned sign-off sheets, reporting, editable content, and appearance settings
+- Inventory Management lifecycle imports, SHA/event deduplication, Serial/MSO/Model history, shipping reports, Promethean quality audit/overrides/whitelist, CSV/XLSX exports
 - Generated-file access ownership/authorization
 
 ## Run locally
@@ -54,14 +55,21 @@ Change the password after first sign-in.
 ```text
 Application.cfc                 Lucee application bootstrap + datasource
 index.cfm                       Main router/API surface
+routes/
+  TrainingRoutes.cfm            Training Tracker parity URL surface
+  TrainingSignoffPdf.cfm        Printable sign-off PDF renderer
+  InventoryRoutes.cfm           Inventory Management parity URL surface
 services/
-  AuthService.cfc               Users and permissions
+  AuthService.cfc               Users and permissions behavior
+  LuceeAuthService.cfc          Lucee runtime bootstrap adapter
   ConfigService.cfc             Pricing/reference configuration
   ExcelService.cfc              XLSX reading/writing with Apache POI
   InvoiceService.cfc            Invoice analysis/build engines
-  NonConformingService.cfc      SMS NonConforming persistence/export/labels
+  NonConformingService.cfc      SMS NonConforming behavior
+  LuceeNonConformingService.cfc Lucee runtime/export adapter
+  LuceeTrainingService.cfc      Native Training Tracker persistence/workflows
+  InventoryService.cfc          Native Inventory Management lifecycle/quality engine
   OutputService.cfc             Generated-file ownership + cleanup
-  TrainingService.cfc           Training Tracker persistence/workflows
 static/                         Preserved frontend CSS/JS/images
 views/portal.html               Build-time-rendered portal shell
 template/                       Original XLSX templates, preserved byte-for-byte
@@ -78,6 +86,6 @@ Python/Jinja is used **only by this GitHub build-time migration workflow**. The 
 
 ## Compatibility goal
 
-The port intentionally preserves the original public URL/API contract (`/sanitize`, `/analyze_storage`, `/analyze_amc`, `/analyze_tcl`, `/analyze_philips`, `/nonconforming/api/*`, `/training-tracker/*`, etc.) so the existing browser frontend continues to work without a simultaneous UI rewrite.
+The port intentionally preserves the original public URL/API contract (`/sanitize`, `/analyze_storage`, `/analyze_amc`, `/analyze_tcl`, `/analyze_philips`, `/nonconforming/api/*`, `/training-tracker/*`, `/inventory-management/*`, etc.) so the existing browser frontend continues to work without a simultaneous UI rewrite.
 
-The original Python repository remains the behavior/reference implementation while parity testing is performed against this Lucee repository.
+The original Python repository remains the behavior/reference implementation. GitHub Actions boots a real Lucee instance for runtime parity checks, and additional authenticated/module tests are maintained alongside the migration.
