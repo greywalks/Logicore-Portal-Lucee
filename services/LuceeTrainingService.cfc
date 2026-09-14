@@ -113,7 +113,7 @@ component output=false {
     void function saveContent(required struct values){for(var k in arguments.values){if(k=="FIELDNAMES")continue;queryExecute("MERGE INTO training_content(key_name,value_text) KEY(key_name) VALUES(:k,:v)",{k:k,v:trim(arguments.values[k]&"")},{datasource:variables.datasource});}}
     void function resetContent(){queryExecute("DELETE FROM training_content",{}, {datasource:variables.datasource});}
     struct function theme(){var out=themeDefaults();var q=queryExecute("SELECT key_name,value_text FROM training_theme",{}, {datasource:variables.datasource});for(var r in q)out[r.key_name]=r.value_text;return out;}
-    struct function themeDefaults(){return{"accent":"###2fd8a6","accent2":"###58d9ff","background":"###0a0d12","surface":"###111720","border":"###334155","text":"###eef2f6","muted":"###94a3b8"};}
+    struct function themeDefaults(){return{"accent":"##2fd8a6","accent2":"##58d9ff","background":"##0a0d12","surface":"##111720","border":"##334155","text":"##eef2f6","muted":"##94a3b8"};}
     void function saveTheme(required struct values){for(var k in arguments.values){if(k=="FIELDNAMES"||!len(trim(arguments.values[k]&"")))continue;queryExecute("MERGE INTO training_theme(key_name,value_text) KEY(key_name) VALUES(:k,:v)",{k:k,v:trim(arguments.values[k]&"")},{datasource:variables.datasource});}}
     void function resetTheme(){queryExecute("DELETE FROM training_theme",{}, {datasource:variables.datasource});}
 
