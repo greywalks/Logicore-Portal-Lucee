@@ -61,6 +61,10 @@ This document tracks runtime parity between `greywalks/Logicore-Portal` and this
 - [x] Quality CSV/XLSX exports.
 - [ ] Authenticated endpoint smoke tests pass under Lucee.
 
+## Validation notes
+
+Runtime validation is being performed from a clean Lucee 7 GitHub Actions runner. Compatibility issues discovered by the gate are fixed in the application code rather than bypassed in CI.
+
 ## Known source inconsistency to preserve during parity testing
 
 The current Python `main` implementation of Philips `_split_base_credit()` applies the included 500 sq ft as a 250/250 Demo/Service split by default, even though older comments and a previously discussed billing expectation describe a different allocation. The Lucee port intentionally follows the executable current-source behavior until the billing rule is explicitly changed in both implementations.
