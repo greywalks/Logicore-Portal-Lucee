@@ -36,6 +36,10 @@ jobs:
           cp source/static/js/app.js lucee/static/js/app.js
           cp source/static/js/nonconforming.js lucee/static/js/nonconforming.js
           cp source/static/js/sidebar-nav.js lucee/static/js/sidebar-nav.js
+          # Preserve the original public URLs used by the existing HTML while
+          # also keeping an organized images/ copy for new CFML templates.
+          cp source/static/logicore_logo.png lucee/static/logicore_logo.png
+          cp source/static/logicore_mark.png lucee/static/logicore_mark.png
           cp source/static/logicore_logo.png lucee/static/images/logicore_logo.png
           cp source/static/logicore_mark.png lucee/static/images/logicore_mark.png
 
