@@ -1,0 +1,74 @@
+name: Apply final API parity integration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-final-api-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Integrate Philips raw report builder and exact NonConforming contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # Application service wiring.
+          p = Path('Application.cfc')
+          s = p.read_text(encoding='utf-8')
+          marker = '        application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath, excelService=application.excel);'
+          if 'application.philipsReport' not in s:
+              insert = '        application.philipsReport = new services.PhilipsReportService(excelService=application.excel, configService=application.configService, outputPath=application.outputPath);\n'
+              if marker not in s: raise SystemExit('Application service marker not found')
+              s = s.replace(marker, insert + marker, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # Router parity.
+          p = Path('index.cfm')
+          s = p.read_text(encoding='utf-8')
+
+          old = 'if(path=="/generate_report_and_analyze"&&method=="POST"){requireAccess("invoice-generator","philips");try{report=saveUploadAny(["report","file","month_end_report"],["xlsx"]);a=application.invoice.analyzePhilips(report,val(valForm(["parts_sqft","parts_square_footage"],0)));session.philips=a;jsonOut({ok:true,inbound_count:a.inbound_count,outbound_count:a.outbound_count,repair_count:a.repair_count,harvest_count:a.harvest_count,missing_dimension_models:a.missing_dimension_models,demo_total_sqft:a.demo_total_sqft,service_total_sqft:a.service_total_sqft});}catch(any e){jsonOut({ok:false,error:e.message},400);}}'
+          new = 'if(path=="/generate_report_and_analyze"&&method=="POST"){requireAccess("invoice-generator","philips");try{raw=saveUploadAny(["raw_data","raw","file"],["xlsx"]);pr=application.philipsReport.buildFromRaw(raw,valForm(["period_start"]),valForm(["period_end"]),valForm(["report_filename"],""));application.outputs.register(pr.filename,"philips");parts=val(valForm(["parts_sqft","parts_square_footage"],0));a=application.invoice.analyzePhilips(pr.path,parts);session.philips=a;session.philips_meta={invoice_title:valForm(["invoice_title"],"TPV-Philips Warehouse & Repair"),output_filename:valForm(["output_filename"],"")};jsonOut({ok:true,logs:[],report_filename:pr.filename,flagged_received_count:pr.flagged_received_count,pending_repairs_count:pr.pending_repairs_count,inbound_count:a.inbound_count,outbound_count:a.outbound_count,repair_count:a.repair_count,harvest_count:a.harvest_count,missing_dimension_models:a.missing_dimension_models,missing_repair_models:a.missing_repair_models,demo_total_sqft:a.demo_total_sqft,service_total_sqft:a.service_total_sqft});}catch(any e){jsonOut({ok:false,error:e.message},400);}}'
+          if old not in s: raise SystemExit('Philips generate/report route marker not found')
+          s = s.replace(old, new, 1)
+
+          old_confirm = 'if(path=="/confirm_philips"&&method=="POST"){requireAccess("invoice-generator","philips");try{if(!structKeyExists(session,"philips"))throw(type="Logicore.State",message="No Philips analysis is active.");r=application.invoice.buildPhilips(session.philips,valForm(["invoice_title"],"TPV Philips Warehouse Invoice"),safeOutputName(form.output_filename?:"","TPV_Philips_Warehouse_Invoice"));session.philips_done=r;jsonOut({ok:true,output:r.filename});}catch(any e){jsonOut({ok:false,error:e.message},400);}}'
+          new_confirm = 'if(path=="/confirm_philips"&&method=="POST"){requireAccess("invoice-generator","philips");try{if(!structKeyExists(session,"philips"))throw(type="Logicore.State",message="No Philips analysis is active.");meta=session.philips_meta?:{};invoiceTitle=valForm(["invoice_title"],meta.invoice_title?:"TPV Philips Warehouse Invoice");outputBase=valForm(["output_filename"],meta.output_filename?:"");r=application.invoice.buildPhilips(session.philips,invoiceTitle,safeOutputName(outputBase,"TPV_Philips_Warehouse_Invoice"));session.philips_done=r;jsonOut({ok:true,output:r.filename});}catch(any e){jsonOut({ok:false,error:e.message},400);}}'
+          if old_confirm not in s: raise SystemExit('Philips confirm marker not found')
+          s = s.replace(old_confirm, new_confirm, 1)
+
+          # NonConforming source-compatible pagination and endpoint spelling/shape.
+          s = s.replace('val(valUrl("limit",50)),val(valUrl("offset",0))', 'min(max(val(valUrl("limit",200)),0),1000),max(val(valUrl("offset",0)),0)', 1)
+          s = s.replace('application.nonconforming.listItems(valUrl("q",""),valUrl("status",""),50000,0)', 'application.nonconforming.listItems(valUrl("q",""),valUrl("status",""),100000,0)', 1)
+          old_next = 'if(path=="/nonconforming/api/next-number"){u=requireAccess("sms-nonconforming");jsonOut({ok:true,next_number:application.nonconforming.previewNextNumber(application.auth.initialsFor(u))});}'
+          new_next = 'if(path=="/nonconforming/api/next_number"||path=="/nonconforming/api/next-number"){u=requireAccess("sms-nonconforming");preview=application.nonconforming.previewNextNumber(application.auth.initialsFor(u));jsonOut({ok:true,preview:preview,next_number:preview});}'
+          if old_next not in s: raise SystemExit('NC next-number marker not found')
+          s = s.replace(old_next, new_next, 1)
+
+          old_dynamic = 'if(method=="GET")jsonOut({ok:true,item:application.nonconforming.getItem(id)});if(method=="PUT"){try{jsonOut({ok:true,item:application.nonconforming.updateItem(id,bodyJson())});}catch(any e){jsonOut({ok:false,error:e.message},400);}}if(method=="DELETE")jsonOut({ok:true,deleted:application.nonconforming.deleteItem(id)});'
+          new_dynamic = 'if(method=="GET"){item=application.nonconforming.getItem(id);if(!structCount(item))jsonOut({ok:false,error:"Not found"},404);jsonOut({ok:true,item:item});}if(method=="PUT"||method=="PATCH"){try{item=application.nonconforming.updateItem(id,bodyJson());if(!structCount(item))jsonOut({ok:false,error:"Not found"},404);jsonOut({ok:true,item:item});}catch(any e){jsonOut({ok:false,error:e.message},400);}}if(method=="DELETE"){deleted=application.nonconforming.deleteItem(id);if(!deleted)jsonOut({ok:false,error:"Not found"},404);jsonOut({ok:true});}'
+          if old_dynamic not in s: raise SystemExit('NC dynamic CRUD marker not found')
+          s = s.replace(old_dynamic, new_dynamic, 1)
+
+          # Preserve old keys while adding the exact current-source repair-cost key.
+          s = s.replace('jsonOut({ok:true,rows:application.configService.getPhilipsRepairCost(),repair_cost:application.configService.getPhilipsRepairCost()});', 'tiers=application.configService.getPhilipsRepairCost();jsonOut({ok:true,tiers:tiers,rows:tiers,repair_cost:tiers});', 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          Path('.github/workflows/apply-final-api-parity.yml').unlink()
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Philips raw report workflow and API parity fixes"
+          git push
