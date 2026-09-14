@@ -33,7 +33,7 @@ component output=false {
         application.auth = new services.LuceeAuthService(datasource="logicore");
         application.configService = new services.ConfigService(rootPath=application.rootPath);
         application.outputs = new services.OutputService(outputPath=application.outputPath);
-        application.nonconforming = new services.LuceeNonConformingService(datasource="logicore", outputPath=application.outputPath);
+        application.nonconforming = new services.LuceeNonConformingService(datasource="logicore", outputPath=application.outputPath, excelService=application.excel);
         application.invoice = new services.InvoiceService(
             rootPath=application.rootPath,
             uploadPath=application.uploadPath,
