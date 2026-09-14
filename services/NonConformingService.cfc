@@ -88,7 +88,7 @@ component output=false {
         var filename="SMS_NonConforming_"&dateFormat(now(),"yyyymmdd")&"_"&timeFormat(now(),"HHmmss")&".xlsx";
         var path=variables.outputPath&filename;
         var sheet=spreadsheetNew("NonConforming",true);
-        var headers=["Date Added","Number","Ticket #","Model #","Serial #","RA #","Tracking","Carrier","Address","Status","USSI Resolution Confirmation","Addtl Info","Origin Company","Store #","Rack","Bin","Filed By"];
+        var headers=["Date Added","Number","Ticket ##","Model ##","Serial ##","RA ##","Tracking","Carrier","Address","Status","USSI Resolution Confirmation","Addtl Info","Origin Company","Store ##","Rack","Bin","Filed By"];
         spreadsheetAddRow(sheet,arrayToList(headers));
         for(var item in arguments.rows) spreadsheetAddRow(sheet,arrayToList([item.date_added?:"",item.number?:"",item.ticket_no?:"",item.model?:"",item.serial?:"",item.ra_no?:"",item.tracking?:"",item.carrier?:"",item.address?:"",item.status?:"",item.ussi_resolution?:"",item.addtl_info?:"",item.origin_company?:"",item.store_no?:"",item.rack?:"",item.bin?:"",item.filed_by_username?:""]));
         spreadsheetFormatRow(sheet,{bold:true,fgcolor:"2F3B4C",fontcolor:"FFFFFF"},1);
