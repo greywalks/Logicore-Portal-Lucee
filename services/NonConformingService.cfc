@@ -28,9 +28,10 @@ component output=false {
 
     private string function generateNumber(required string initials, numeric yearNum=year(now())) {
         var ini=uCase(trim(arguments.initials)); if(!len(ini)) ini="XX";
-        transaction datasource=variables.datasource isolation="serializable" {
+        var n=0;
+        transaction isolation="serializable" {
             var q=queryExecute("SELECT count_num FROM nc_number_counters WHERE initials=:i AND year_num=:y FOR UPDATE", {i:ini,y:arguments.yearNum}, {datasource:variables.datasource});
-            var n=q.recordCount ? q.count_num[1]+1 : 1;
+            n=q.recordCount ? q.count_num[1]+1 : 1;
             if(q.recordCount) queryExecute("UPDATE nc_number_counters SET count_num=:n WHERE initials=:i AND year_num=:y", {n:n,i:ini,y:arguments.yearNum}, {datasource:variables.datasource});
             else queryExecute("INSERT INTO nc_number_counters(initials,year_num,count_num) VALUES(:i,:y,:n)", {i:ini,y:arguments.yearNum,n:n}, {datasource:variables.datasource});
         }
@@ -43,9 +44,9 @@ component output=false {
         var params={d:dateFormat(now(),"yyyy-mm-dd"),n:number,uid:arguments.user.id,un:arguments.user.username};
         var cols=[]; var binds=[];
         for(var f in variables.editableFields){ arrayAppend(cols,f); arrayAppend(binds,":"&f); params[f]=trim(arguments.fields[f] ?: ""); }
-        var result={};
-        queryExecute("INSERT INTO nc_items(date_added,number,filed_by_user_id,filed_by_username,"&arrayToList(cols)&") VALUES(:d,:n,:uid,:un,"&arrayToList(binds)&")",params,{datasource:variables.datasource,result:"result"});
-        return getItem(result.generatedKey);
+        queryExecute("INSERT INTO nc_items(date_added,number,filed_by_user_id,filed_by_username,"&arrayToList(cols)&") VALUES(:d,:n,:uid,:un,"&arrayToList(binds)&")",params,{datasource:variables.datasource});
+        var q=queryExecute("SELECT * FROM nc_items WHERE number=:n",{n:number},{datasource:variables.datasource});
+        return q.recordCount ? rowToStruct(q,1) : {};
     }
 
     struct function getItem(required numeric id) {
@@ -56,9 +57,7 @@ component output=false {
     struct function updateItem(required numeric id, required struct fields) {
         var current=getItem(arguments.id); if(!structCount(current)) return {};
         var sets=[]; var params={id:arguments.id};
-        for(var f in variables.editableFields){
-            if(structKeyExists(arguments.fields,f)){ arrayAppend(sets,f&"=:"&f); params[f]=trim(arguments.fields[f] ?: ""); }
-        }
+        for(var f in variables.editableFields){ if(structKeyExists(arguments.fields,f)){ arrayAppend(sets,f&"=:"&f); params[f]=trim(arguments.fields[f] ?: ""); } }
         if(!arrayLen(sets)) return current;
         validateRequired(structAppend(duplicate(current),arguments.fields,true));
         queryExecute("UPDATE nc_items SET "&arrayToList(sets)&", updated_at=CURRENT_TIMESTAMP WHERE id=:id",params,{datasource:variables.datasource});
@@ -81,7 +80,7 @@ component output=false {
         var q=queryExecute("SELECT * FROM nc_items"&clause&" ORDER BY date_added DESC,id DESC LIMIT :lim OFFSET :off",params,{datasource:variables.datasource});
         var c=queryExecute("SELECT COUNT(*) c FROM nc_items"&clause,params,{datasource:variables.datasource});
         var statuses=queryExecute("SELECT DISTINCT status FROM nc_items WHERE status IS NOT NULL AND status<>'' ORDER BY status",{}, {datasource:variables.datasource});
-        var st=[]; for(var row in statuses) arrayAppend(st,row.status);
+        var st=[]; for(var item in statuses) arrayAppend(st,item.status);
         return {items:queryToArray(q),total:c.c[1],statuses:st};
     }
 
@@ -91,9 +90,7 @@ component output=false {
         var sheet=spreadsheetNew("NonConforming",true);
         var headers=["Date Added","Number","Ticket #","Model #","Serial #","RA #","Tracking","Carrier","Address","Status","USSI Resolution Confirmation","Addtl Info","Origin Company","Store #","Rack","Bin","Filed By"];
         spreadsheetAddRow(sheet,arrayToList(headers));
-        for(var item in arguments.rows){
-            spreadsheetAddRow(sheet,arrayToList([item.date_added?:"",item.number?:"",item.ticket_no?:"",item.model?:"",item.serial?:"",item.ra_no?:"",item.tracking?:"",item.carrier?:"",item.address?:"",item.status?:"",item.ussi_resolution?:"",item.addtl_info?:"",item.origin_company?:"",item.store_no?:"",item.rack?:"",item.bin?:"",item.filed_by_username?:""]));
-        }
+        for(var item in arguments.rows) spreadsheetAddRow(sheet,arrayToList([item.date_added?:"",item.number?:"",item.ticket_no?:"",item.model?:"",item.serial?:"",item.ra_no?:"",item.tracking?:"",item.carrier?:"",item.address?:"",item.status?:"",item.ussi_resolution?:"",item.addtl_info?:"",item.origin_company?:"",item.store_no?:"",item.rack?:"",item.bin?:"",item.filed_by_username?:""]));
         spreadsheetFormatRow(sheet,{bold:true,fgcolor:"2F3B4C",fontcolor:"FFFFFF"},1);
         spreadsheetWrite(sheet,path,true);
         return filename;
@@ -107,10 +104,7 @@ component output=false {
         return "^XA"&chr(10)&"^PW"&labelW&chr(10)&"^LL"&labelH&chr(10)&"^CF0,"&h&chr(10)&"^FO0,"&yNum&"^FB"&labelW&",1,0,C,0^FD"&number&"^FS"&chr(10)&"^FO"&xQr&","&yQr&chr(10)&"^BQN,2,6"&chr(10)&"^FDLA,"&number&"^FS"&chr(10)&"^XZ";
     }
 
-    private void function validateRequired(required struct fields){
-        var missing=[]; for(var f in variables.requiredFields) if(!len(trim(arguments.fields[f] ?: ""))) arrayAppend(missing,f);
-        if(arrayLen(missing)) throw(type="Logicore.Validation",message="Missing required field(s): "&arrayToList(missing,", "));
-    }
+    private void function validateRequired(required struct fields){ var missing=[]; for(var f in variables.requiredFields) if(!len(trim(arguments.fields[f] ?: ""))) arrayAppend(missing,f); if(arrayLen(missing)) throw(type="Logicore.Validation",message="Missing required field(s): "&arrayToList(missing,", ")); }
     private struct function rowToStruct(required query q, required numeric n){var s={};for(var c in listToArray(q.columnList))s[c]=q[c][n];return s;}
     private array function queryToArray(required query q){var a=[];for(var i=1;i<=q.recordCount;i++)arrayAppend(a,rowToStruct(q,i));return a;}
 }
