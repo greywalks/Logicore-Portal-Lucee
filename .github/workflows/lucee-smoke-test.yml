@@ -16,14 +16,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up CommandBox
-        uses: Ortus-Solutions/setup-commandbox@v2
-
-      - name: Install CFConfig support
-        run: box install commandbox-cfconfig --force
+        uses: Ortus-Solutions/setup-commandbox@v2.0.1
+        with:
+          installSystemModules: true
 
       - name: Start Lucee
         run: |
-          box server start --noSaveSettings
+          box server start --noOpenBrowser
           sleep 15
 
       - name: Verify health endpoint
@@ -38,7 +37,7 @@ jobs:
         if: failure()
         run: |
           box server status || true
-          find . -maxdepth 5 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 150 {} \; || true
+          find . -maxdepth 6 -type f \( -name '*.log' -o -name '*.out' \) -print -exec tail -n 180 {} \; || true
 
       - name: Stop Lucee
         if: always()
