@@ -1,0 +1,52 @@
+name: Apply Inventory router parity patch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-router-parity-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch router and portal navigation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          index = Path('index.cfm')
+          text = index.read_text(encoding='utf-8')
+          needle = 'var path=routePath();var method=uCase(cgi.request_method?:"GET");\n'
+          insert = needle + '\n// Inventory Management is a real mounted workspace (legacy permission key: tbd2).\nif(left(path,len("/inventory-management"))=="/inventory-management"){include "routes/InventoryRoutes.cfm";abort;}\n'
+          if 'include "routes/InventoryRoutes.cfm"' not in text:
+              if needle not in text:
+                  raise SystemExit('Could not locate router insertion point')
+              text = text.replace(needle, insert, 1)
+              index.write_text(text, encoding='utf-8')
+
+          js = Path('static/js/lucee-auth.js')
+          j = js.read_text(encoding='utf-8')
+          marker = "const inventory = document.getElementById('portal-nav-tbd2');"
+          if marker not in j:
+              target = '  function enforceNav() {\n'
+              patch = '''  function wireInventoryNav() {\n    const inventory = document.getElementById('portal-nav-tbd2');\n    if (!inventory) return;\n    inventory.removeAttribute('data-portal');\n    inventory.removeAttribute('onclick');\n    inventory.id = 'portal-nav-inventory-management';\n    const label = inventory.querySelector('span');\n    if (label) label.textContent = 'Inventory Management';\n    inventory.addEventListener('click', function (event) {\n      event.preventDefault();\n      window.location.href = '/inventory-management/';\n    });\n  }\n\n  function enforceNav() {\n'''
+              if target not in j:
+                  raise SystemExit('Could not locate nav insertion point')
+              j = j.replace(target, patch, 1)
+              j = j.replace("hide('portal-nav-tbd2');", "hide('portal-nav-inventory-management');")
+              j = j.replace("if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', enforceNav);\n  else enforceNav();", "if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { wireInventoryNav(); enforceNav(); });\n  else { wireInventoryNav(); enforceNav(); }")
+              js.write_text(j, encoding='utf-8')
+
+          # Remove this one-time migration workflow from the finished application.
+          Path('.github/workflows/apply-router-parity-patch.yml').unlink()
+      - name: Commit parity patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Wire Inventory Management into Lucee portal router"
+          git push
