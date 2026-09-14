@@ -29,15 +29,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p lucee/static/css lucee/static/js lucee/static/images lucee/template lucee/config lucee/migration/source-templates lucee/migration/source-training-templates
+          mkdir -p lucee/static/css lucee/static/js lucee/static/images lucee/template lucee/config lucee/migration/source-templates lucee/migration/source-training-templates lucee/views
 
           cp source/static/css/app.css lucee/static/css/app.css
           cp source/static/css/tailwind.css lucee/static/css/tailwind.css
           cp source/static/js/app.js lucee/static/js/app.js
           cp source/static/js/nonconforming.js lucee/static/js/nonconforming.js
           cp source/static/js/sidebar-nav.js lucee/static/js/sidebar-nav.js
-          # Preserve the original public URLs used by the existing HTML while
-          # also keeping an organized images/ copy for new CFML templates.
           cp source/static/logicore_logo.png lucee/static/logicore_logo.png
           cp source/static/logicore_mark.png lucee/static/logicore_mark.png
           cp source/static/logicore_logo.png lucee/static/images/logicore_logo.png
@@ -50,10 +48,15 @@ jobs:
           cp source/philips_reference_default.json lucee/config/philips_reference_default.json
           cp source/fedex_shipment_defaults.json lucee/config/fedex_shipment_defaults.json
 
-          # Keep the original templates in-repo as a parity reference while the
-          # runtime versions are CFML. These are not served by Lucee.
           cp source/templates/*.html lucee/migration/source-templates/
           cp source/training_tracker/templates/*.html lucee/migration/source-training-templates/
+
+      - name: Render Flask portal markup into Lucee static shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet jinja2
+          python lucee/migration/render_portal.py --source source/templates/index.html --output lucee/views/portal.html
 
       - name: Commit imported assets
         working-directory: lucee
@@ -62,10 +65,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add static template config migration
+          git add static template config migration views
           if git diff --cached --quiet; then
             echo "Source assets already current."
             exit 0
           fi
-          git commit -m "Import unchanged assets from Logicore-Portal"
+          git commit -m "Import and render current Logicore-Portal assets"
           git push
