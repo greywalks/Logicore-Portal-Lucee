@@ -26,14 +26,11 @@ jobs:
           sleep 15
 
       - name: Verify health endpoint
-        run: |
-          curl --fail-with-body --show-error --retry 3 --retry-delay 2 http://127.0.0.1:5000/healthz
+        run: curl --fail-with-body --show-error --retry 3 --retry-delay 2 http://127.0.0.1:5000/healthz
 
       - name: Verify login page
         run: |
           curl -sS -D login.headers -o login.body http://127.0.0.1:5000/login
-          cat login.headers
-          cat login.body
           grep -q "HTTP/1.1 200" login.headers
           grep -q "Sign in" login.body
 
@@ -43,22 +40,35 @@ jobs:
             -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
             --data 'username=admin&password=admin&next=/' \
             http://127.0.0.1:5000/login
-          cat auth.headers
-          cat auth.body
           grep -Eq "HTTP/1.1 30[12378]" auth.headers
 
-      - name: Verify authenticated portal and modules
+      - name: Verify portal shell
         run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/ -o portal.body
           grep -q "Logicore" portal.body
+
+      - name: Verify permissions admin
+        run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/admin/permissions -o admin.body
           grep -q "Users & Permissions" admin.body
+
+      - name: Verify Training Tracker
+        run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/training-tracker/ -o training.body
           grep -q "Training" training.body
+
+      - name: Verify Inventory Management
+        run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/inventory-management/ -o inventory.body
           grep -q "Inventory Management" inventory.body
+
+      - name: Verify NonConforming API
+        run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/nonconforming/api/items -o nonconforming.json
           grep -qi '"ok"' nonconforming.json
+
+      - name: Verify config API
+        run: |
           curl --fail-with-body -sS -b cookies.txt http://127.0.0.1:5000/get_storage_prices -o storage-prices.json
           grep -qi '"ok"' storage-prices.json
 
