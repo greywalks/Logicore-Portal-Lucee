@@ -30,10 +30,10 @@ component output=false {
         if (!directoryExists(application.outputPath & ".access/")) directoryCreate(application.outputPath & ".access/", true);
 
         application.excel = new services.ExcelService();
-        application.auth = new services.AuthService(datasource="logicore");
+        application.auth = new services.LuceeAuthService(datasource="logicore");
         application.configService = new services.ConfigService(rootPath=application.rootPath);
         application.outputs = new services.OutputService(outputPath=application.outputPath);
-        application.nonconforming = new services.NonConformingService(datasource="logicore", outputPath=application.outputPath);
+        application.nonconforming = new services.LuceeNonConformingService(datasource="logicore", outputPath=application.outputPath);
         application.invoice = new services.InvoiceService(
             rootPath=application.rootPath,
             uploadPath=application.uploadPath,
@@ -42,11 +42,8 @@ component output=false {
             outputService=application.outputs,
             excelService=application.excel
         );
-        application.training = new services.TrainingService(datasource="logicore", rootPath=application.rootPath);
+        application.training = new services.LuceeTrainingService(datasource="logicore", rootPath=application.rootPath);
 
-        application.auth.init();
-        application.nonconforming.init();
-        application.training.init();
         application.outputs.cleanOld(72);
         return true;
     }
